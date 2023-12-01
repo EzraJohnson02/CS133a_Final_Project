@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'testrobot = finalproject.testrobot:main',
+            'balldemo = finalproject.balldemo:main'
         ],
     },
 )
