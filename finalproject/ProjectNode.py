@@ -66,9 +66,9 @@ class ProjectNode(Node):
         # Initialize the ball position, velocity, set the acceleration.
         self.radius = 0.1
 
-        self.p = np.array([0.5, 0., 2. + self.radius]).reshape((3,1))
-        self.v = np.array([-0.1, 0., 0.]).reshape((3,1))
-        self.a = np.array([0.0, 0.0, -0.5]).reshape((3,1))
+        self.p = np.array([0, 0., 1.5]).reshape((3,1))
+        self.v = np.array([0.2, 0., 0.]).reshape((3,1))
+        self.a = np.array([0.0, 0.0, -0.15]).reshape((3,1))
 
         # Create the sphere marker.
         diam        = 2 * self.radius

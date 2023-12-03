@@ -1,12 +1,12 @@
 import numpy as np
 from math import pi, sin, cos, acos, atan2, sqrt, fmod, exp
 from finalproject.TransformHelpers     import *
+from finalproject.TrajectoryPlanner    import *
 
 # Grab the utilities
 from hw5code.TransformHelpers   import *
 from hw5code.TrajectoryUtils    import *
 from scipy.optimize import fmin
-from scipy.optimize import minimize, NonlinearConstraint
 
 # Grab the general fkin from HW5 P5.
 from hw5code.KinematicChain     import KinematicChain
@@ -19,61 +19,80 @@ class Trajectory:
         self.chain = KinematicChain(node, 'world', 'ee_link', self.jointnames())
 
         # Define the various points.
-        self.q0 = np.radians(np.array([0, 0, 0, 0, 0, 0]).reshape((-1,1)))
-        self.p0 = np.array([0.0, 0.0, 0.0]).reshape((-1,1))
+        self.q0 = np.radians(np.array([0,0,-np.pi,0,0,0]).reshape((-1,1)))
+        self.p0 = np.zeros(3).reshape((-1,1))
         self.R0 = Reye()
 
         min_time = 0.5
-        ball_trajectory = lambda t: \
-            p_ball + v_ball * (np.abs(t) + min_time) + 0.5 * a_ball * np.square((np.abs(t) + min_time))
-        res = fmin(lambda x: np.linalg.norm(ball_trajectory(x)).item(), min_time)
-        t = res.item()
+        tp = TrajectoryPlanner(p_ball, v_ball, a_ball, min_time)
 
-        catch_position = ball_trajectory(t)
-        t_real = (np.abs(t) + min_time)
+        t = tp.calculate_min_time()
+        catch_position = tp.position(t)
 
-        catch_position = ball_trajectory(t)
         distance = np.linalg.norm(catch_position)
-        task_radius = 1.4
+        task_radius = 1.8
         if distance > task_radius:
             print(f"Ball is out of bounds! Distance {distance}")
             self.pF = self.p0
             self.T = 10
+            e = ez()
+            self.e_paddle = e
+            self.theta_paddle = 0
         else:
             self.pF = np.array(catch_position).reshape((-1,1))
-            self.T = t_real
+            self.T = t * 0.9
+            ball_velocity = tp.velocity(t).flatten()
+            # Negative to go in other direction
+            ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
+            z = ez().flatten()
+            e = np.cross(ball_velocity_norm, z).reshape((3,1))
+            e = e / np.linalg.norm(e)
+
+            self.e_paddle = e
+            self.theta_paddle = np.arccos(np.dot(ball_velocity_norm, z))
         self.q = self.q0
         self.pd = self.p0
-        self.Rd = self.R0
+        self.Rd = self.R0 @ Roty(-pi/2) @ Rote(self.e_paddle, -self.theta_paddle)
 
         self.lam = 20
 
         self.pub = node.create_publisher(Float64, '/condition', 10)
 
     def set_goal(self, p_ball, v_ball, a_ball):
-        min_time = 0.
-        ball_trajectory = lambda t: \
-            p_ball + v_ball * t + 0.5 * a_ball * np.square(t)
-
         min_time = 0.2
-        ball_trajectory = lambda t: \
-            p_ball + v_ball * (np.abs(t) + min_time) + 0.5 * a_ball * np.square((np.abs(t) + min_time))
-        res = fmin(lambda x: np.linalg.norm(ball_trajectory(x)).item(), min_time)
-        t = res.item()
+        tp = TrajectoryPlanner(p_ball, v_ball, a_ball, min_time)
 
-        catch_position = ball_trajectory(t)
-        t_real = (np.abs(t) + min_time)
+        t = tp.calculate_min_time()
+        catch_position = tp.position(t)
+
         distance = np.linalg.norm(catch_position)
         task_radius = 1.4
         self.q0 = self.q
         self.p0 = self.pF
+        self.R0 = Reye()
+
         if distance > task_radius:
             print(f"Ball is out of bounds! Distance {distance}")
             self.pF = self.p0
             self.T = 10
+            e = ez()
+            self.e_paddle = e
+            self.theta_paddle = 0
         else:
             self.pF = np.array(catch_position).reshape((-1,1))
-            self.T = t_real
+            self.T = t * 0.9
+            ball_velocity = tp.velocity(t).flatten()
+            # Negative to go in other direction
+            ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
+            z = ez().flatten()
+            e = np.cross(ball_velocity_norm, z).reshape((3,1))
+            e = e / np.linalg.norm(e)
+
+            self.e_paddle = e
+            self.theta_paddle = np.arccos(np.dot(ball_velocity_norm, z))
+
+        self.Rd = self.R0 @ Roty(-pi/2) @ Rote(e, -self.theta_paddle)
+
 
     # Declare the joint names.
     def jointnames(self):
@@ -98,8 +117,7 @@ class Trajectory:
         (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
         pd = self.p0 + (self.pF - self.p0) * s0
         vd = (self.pF - self.p0) * s0dot
-        Rd = Roty(-np.pi/2)
-        wd = -pi/2 * ey()
+        wd = -pi/2 * ey() - self.theta_paddle * self.e_paddle
 
         qlast = self.q
         pdlast = self.pd
@@ -124,7 +142,6 @@ class Trajectory:
 
         self.q = q
         self.pd = pd
-        self.Rd = Rd
 
         # Return the position and velocity as python lists.
         return (q.flatten().tolist(), qdot.flatten().tolist())
