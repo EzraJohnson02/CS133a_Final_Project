@@ -84,13 +84,36 @@ class ProjectNode(Node):
         self.marker.scale            = Vector3(x = diam, y = diam, z = diam)
         self.marker.color            = ColorRGBA(r=1.0, g=0.0, b=0.0, a=0.8)
         # a = 0.8 is slightly transparent!
+        
+        # Initialize the second ball position, velocity, set the acceleration.
+        self.radius = 0.1
+
+        self.p2 = np.array([0, 0., 1.]).reshape((3,1))
+        self.v2 = np.array([0.2, 0., 0.]).reshape((3,1))
+        self.a2 = np.array([0.0, 0.0, -0.15]).reshape((3,1))
+
+        # Create the sphere marker.
+        diam        = 2 * self.radius
+        self.marker2 = Marker()
+        self.marker2.header.frame_id  = "world"
+        self.marker2.header.stamp     = self.get_clock().now().to_msg()
+        self.marker2.action           = Marker.ADD
+        self.marker2.ns               = "point"
+        self.marker2.id               = 1
+        self.marker2.type             = Marker.SPHERE
+        self.marker2.pose.orientation = Quaternion()
+        self.marker2.pose.position    = Point_from_p(self.p)
+        self.marker2.scale            = Vector3(x = diam, y = diam, z = diam)
+        self.marker2.color            = ColorRGBA(r=0.0, g=0.0, b=1.0, a=0.8)
+        # a = 0.8 is slightly transparent!
 
         # Create the marker array message.
         self.mark = MarkerArray()
         self.mark.markers.append(self.marker)
+        self.mark.markers.append(self.marker2)
 
         # Set up a trajectory.
-        self.trajectory = Trajectory(self, self.p, self.v, self.a)
+        self.trajectory = Trajectory(self, self.p, self.v, self.a, self.p2, self.v2, self.a2)
         self.tr = Trajectory
         self.jointnames = self.trajectory.jointnames()
 
@@ -174,10 +197,13 @@ class ProjectNode(Node):
         # Integrate the velocity, then the position.
         self.v += self.dt * self.a
         self.p += self.dt * self.v
+        
+        self.v2 += self.dt * self.a2
+        self.p2 += self.dt * self.v2
 
         if not self.planned and self.delay <= 0:
             self.t_trajectory = 0.
-            self.trajectory.set_goal(self.p, self.v, self.a)
+            self.trajectory.set_goal(self.p, self.v, self.a, self.p2, self.v2, self.a2)
             self.planned = True
 
         # Check for a bounce - not the change in x velocity is non-physical.
@@ -192,6 +218,19 @@ class ProjectNode(Node):
             self.p[2,0] = self.radius
             self.v[0,0] *= -1.0
             self.v[2,0] *= -1.0
+            self.delay = 1
+            self.planned = False
+
+        if np.linalg.norm(self.p2 - p_tip) < self.radius + 0.2 and self.delay <= 0:
+            self.p2[2,0] = p_tip[2,0] + self.radius
+            self.v2[0,0] *= -1.0
+            self.v2[2,0] *= -1.0
+            self.delay = 1
+            self.planned = False
+        elif self.p2[2, 0] < self.radius:
+            self.p2[2,0] = self.radius
+            self.v2[0,0] *= -1.0
+            self.v2[2,0] *= -1.0
             self.delay = 1
             self.planned = False
 

@@ -1,0 +1,4 @@
+[console_scripts]
+balldemo = finalproject.balldemo:main
+testrobot = finalproject.testrobot:main
+
