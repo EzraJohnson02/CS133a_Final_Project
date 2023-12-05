@@ -18,6 +18,7 @@ from std_msgs.msg               import Float64
 from finalproject.balldemo      import *
 from finalproject.Trajectory    import Trajectory
 from finalproject.ProjectNode   import ProjectNode
+from finalproject.PointPublisher import *
 
 #
 #  Main Code
@@ -25,10 +26,16 @@ from finalproject.ProjectNode   import ProjectNode
 def main(args=None):
     # Initialize ROS.
     rclpy.init(args=args)
+    node = GUINode('point', [0., 0., 0.], 10)
+    # Run until interrupted.
+    node.run()
+    p = node.getvalue()
+    # Shutdown the node and ROS.
+    node.destroy_node()
 
     # Initialize the generator node for 100Hz udpates, using the above
     # Trajectory class.
-    generator = ProjectNode('generator', 100, Trajectory)
+    generator = ProjectNode('generator', p, 100, Trajectory)
 
     # Spin, meaning keep running (taking care of the timer callbacks
     # and message passing), until interrupted or the trajectory ends.

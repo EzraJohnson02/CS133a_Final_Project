@@ -11,6 +11,12 @@ from scipy.optimize import fmin
 from finalproject.KinematicChain     import KinematicChain
 from std_msgs.msg import Float64
 
+def norm(v):
+    if np.linalg.norm(v) == 0:
+        return np.zeros_like(v)
+    else:
+        return v / np.linalg.norm(v)
+
 class Trajectory:
     # Initialization.
     def __init__(self, node, p_ball, v_ball, a_ball):
@@ -18,7 +24,7 @@ class Trajectory:
         self.chain = KinematicChain(node, 'world', 'ee_link', self.jointnames())
 
         # Define the various points.
-        self.q0 = np.radians(np.array([0,0,-np.pi,0,0,0]).reshape((-1,1)))
+        self.q0 = np.radians(np.zeros(6).reshape((-1,1)))
         self.p0 = np.zeros(3).reshape((-1,1))
         self.R0 = Reye()
 
@@ -29,7 +35,7 @@ class Trajectory:
         catch_position = tp.position(t)
 
         distance = np.linalg.norm(catch_position)
-        task_radius = 1.8
+        task_radius = 1.35
         if distance > task_radius:
             print(f"Ball 1 is out of bounds! Distance {distance}")
             self.pF = self.p0
@@ -45,7 +51,7 @@ class Trajectory:
             ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
             z = ez().flatten()
             e = np.cross(ball_velocity_norm, z).reshape((3,1))
-            e = e / np.linalg.norm(e)
+            e = norm(e)
 
             self.e_paddle = e
             self.theta_paddle = np.arccos(np.dot(ball_velocity_norm, z))
@@ -96,7 +102,11 @@ class Trajectory:
         catch_position = tp.position(t)
 
         distance = np.linalg.norm(catch_position)
-        task_radius = 1.8
+        task_radius = 1.35
+        self.q0 = self.q
+        self.p0 = self.pF
+        self.R0 = Reye()
+
         if distance > task_radius:
             print(f"Ball 1 is out of bounds! Distance {distance}")
             self.pF = self.p0
@@ -112,7 +122,7 @@ class Trajectory:
             ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
             z = ez().flatten()
             e = np.cross(ball_velocity_norm, z).reshape((3,1))
-            e = e / np.linalg.norm(e)
+            e = norm(e)
 
             self.e_paddle = e
             self.theta_paddle = np.arccos(np.dot(ball_velocity_norm, z))
@@ -200,8 +210,11 @@ class Trajectory:
         M, N = J.shape
         gamma = 0.1
         lam_s = 10
+        qgoal = np.array([np.pi / 2, np.pi / 2, -np.pi / 2, -np.pi / 4, np.pi / 2, 0]).reshape(-1, 1)
+        qdot_second = lam_s * (qgoal - qlast)
+        (_, N) = J.shape
         Jp = np.transpose(J) @ np.linalg.pinv(J @ np.transpose(J) + gamma ** 2 * np.eye(M))
-        qdot = Jp @ xrdot
+        qdot = Jp @ xrdot + (np.eye(N) - Jp @ J) @ qdot_second
 
         q = qlast + dt * qdot
         # q2 = qlast2 + dt * qdot2

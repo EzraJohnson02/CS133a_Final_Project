@@ -52,7 +52,7 @@ from finalproject.TransformHelpers import *
 #
 class ProjectNode(Node):
     # Initialization.
-    def __init__(self, name, rate, Trajectory):
+    def __init__(self, name, p, rate, Trajectory):
         # Initialize the node, naming it as specified
         super().__init__(name)
         self.delay = 0.
@@ -67,11 +67,11 @@ class ProjectNode(Node):
             MarkerArray, '/visualization_marker_array', quality)
 
         # Initialize the ball position, velocity, set the acceleration.
-        self.radius = 0.1
+        self.radius = 0.05
 
-        self.p = np.array([0, 0., 1.5]).reshape((3,1))
-        self.v = np.array([0.2, 0., 0.]).reshape((3,1))
-        self.a = np.array([0.0, 0.0, -0.15]).reshape((3,1))
+        self.p = np.array([p[0], p[1], p[2]]).reshape((3,1))
+        self.v = np.array([-0.2, 0., 0.]).reshape((3,1))
+        self.a = np.array([0.0, 0.0, -0.2]).reshape((3,1))
 
         # Create the sphere marker.
         diam        = 2 * self.radius
@@ -214,17 +214,16 @@ class ProjectNode(Node):
 
         # Check for a bounce - not the change in x velocity is non-physical.
         p_tip = self.trajectory.position()
-        if np.linalg.norm(self.p - p_tip) < self.radius + 0.2 and self.delay <= 0:
-            self.p[2,0] = p_tip[2,0] + self.radius
-            self.v[0,0] *= -1.0
-            self.v[2,0] *= -1.0
-            self.delay = 1
+        if np.linalg.norm(self.p - p_tip) < 2 * self.radius and self.delay <= 0:
+            self.p = p_tip - 0.1 * self.v
+            self.v *= -1
+            self.delay = 0.8
             self.planned = False
         elif self.p[2, 0] < self.radius:
             self.p[2,0] = self.radius
-            self.v[0,0] *= -1.0
-            self.v[2,0] *= -1.0
-            self.delay = 1
+            self.p -= 0.1 * self.v
+            self.v *= -1
+            self.delay = 0.8
             self.planned = False
 
         # if np.linalg.norm(self.p2 - p_tip) < self.radius + 0.2 and self.delay <= 0:
