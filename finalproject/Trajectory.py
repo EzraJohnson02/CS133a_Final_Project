@@ -6,7 +6,6 @@ from finalproject.TrajectoryPlanner    import *
 # Grab the utilities
 from finalproject.TransformHelpers   import *
 from finalproject.TrajectoryUtils    import *
-from scipy.optimize import fmin
 
 from finalproject.KinematicChain     import KinematicChain
 from std_msgs.msg import Float64
@@ -89,8 +88,9 @@ class Trajectory:
         # self.pd2 = self.p0
         self.Rd = self.R0 @ Roty(-pi/2) @ Rote(self.e_paddle, -self.theta_paddle)
         # self.Rd2 = self.R0 @ Roty(-pi/2) @ Rote(self.e_paddle2, -self.theta_paddle2)
-
         self.lam = 20
+
+        self.qF = self.calculate_final_joint_state()
 
         self.pub = node.create_publisher(Float64, '/condition', 10)
 
@@ -103,7 +103,7 @@ class Trajectory:
 
         distance = np.linalg.norm(catch_position)
         task_radius = 1.35
-        self.q0 = self.q
+        self.q0 = self.qF
         self.p0 = self.pF
         self.R0 = Reye()
 
@@ -158,6 +158,55 @@ class Trajectory:
         # self.Rd2 = self.R0 @ Roty(-pi/2) @ Rote(e, -self.theta_paddle2)
         self.Rd = self.R0 @ Roty(-pi/2) @ Rote(e, -self.theta_paddle)
 
+        self.qF = self.calculate_final_joint_state()
+
+    def calculate_final_joint_state(self):
+        t = 0
+        dt = 0.01
+        q = self.q0
+        while t < self.T:
+            (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
+            pd = self.p0 + (self.pF - self.p0) * s0
+            vd = (self.pF - self.p0) * s0dot
+            wd = -pi/2 * ey() - self.theta_paddle * self.e_paddle
+            # pd2 = self.p0 + (self.pF2 - self.p0) * s0
+            # vd2 = (self.pF2 - self.p0) * s0dot
+            # wd2 = -pi/2 * ey() - self.theta_paddle2 * self.e_paddle2
+
+            qlast = q
+            pdlast = pd
+            Rdlast = self.Rd
+
+            # qlast2 = self.q2
+            # pdlast2 = self.pd2
+            # Rdlast2 = self.Rd2
+
+            (p, R, Jv, Jw) = self.chain.fkin(qlast)
+            vr = vd + self.lam * ep(pdlast, p)
+            wr = wd + self.lam * eR(Rdlast, R)
+            J = np.vstack((Jv, Jw))
+            xrdot = np.vstack((vr, wr))
+
+            # (p2, R2, Jv2, Jw2) = self.chain.fkin(qlast2)
+            # vr2 = vd2 + self.lam * ep(pdlast2, p2)
+            # wr2 = wd2 + self.lam * eR(Rdlast2, R2)
+            # J2 = np.vstack((Jv2, Jw2))
+            # xrdot2 = np.vstack((vr2, wr2))
+
+            M, N = J.shape
+            gamma = 0.1
+            lam_s = 10
+            q_center = \
+                [np.pi / 2, np.pi / 2, -np.pi / 2, -np.pi / 4, np.pi / 2, 0]
+            qgoal = np.array(q_center).reshape(-1, 1)
+            qdot_second = lam_s * (qgoal - qlast)
+            (_, N) = J.shape
+            Jp = np.transpose(J) @ np.linalg.pinv(J @ np.transpose(J) + gamma ** 2 * np.eye(M))
+            qdot = Jp @ xrdot + (np.eye(N) - Jp @ J) @ qdot_second
+
+            q = qlast + dt * qdot
+            t += dt
+        return q
 
     # Declare the joint names.
     def jointnames(self):
@@ -180,50 +229,7 @@ class Trajectory:
         if t > self.T:
             return None
         (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
-        pd = self.p0 + (self.pF - self.p0) * s0
-        vd = (self.pF - self.p0) * s0dot
-        wd = -pi/2 * ey() - self.theta_paddle * self.e_paddle
-        # pd2 = self.p0 + (self.pF2 - self.p0) * s0
-        # vd2 = (self.pF2 - self.p0) * s0dot
-        # wd2 = -pi/2 * ey() - self.theta_paddle2 * self.e_paddle2
-
-        qlast = self.q
-        pdlast = self.pd
-        Rdlast = self.Rd
-
-        # qlast2 = self.q2
-        # pdlast2 = self.pd2
-        # Rdlast2 = self.Rd2
-
-        (p, R, Jv, Jw) = self.chain.fkin(qlast)
-        vr = vd + self.lam * ep(pdlast, p)
-        wr = wd + self.lam * eR(Rdlast, R)
-        J = np.vstack((Jv, Jw))
-        xrdot = np.vstack((vr, wr))
-
-        # (p2, R2, Jv2, Jw2) = self.chain.fkin(qlast2)
-        # vr2 = vd2 + self.lam * ep(pdlast2, p2)
-        # wr2 = wd2 + self.lam * eR(Rdlast2, R2)
-        # J2 = np.vstack((Jv2, Jw2))
-        # xrdot2 = np.vstack((vr2, wr2))
-
-        M, N = J.shape
-        gamma = 0.1
-        lam_s = 10
-        qgoal = np.array([np.pi / 2, np.pi / 2, -np.pi / 2, -np.pi / 4, np.pi / 2, 0]).reshape(-1, 1)
-        qdot_second = lam_s * (qgoal - qlast)
-        (_, N) = J.shape
-        Jp = np.transpose(J) @ np.linalg.pinv(J @ np.transpose(J) + gamma ** 2 * np.eye(M))
-        qdot = Jp @ xrdot + (np.eye(N) - Jp @ J) @ qdot_second
-
-        q = qlast + dt * qdot
-        # q2 = qlast2 + dt * qdot2
-
+        q = s0 * (self.qF - self.q0) + self.q0
+        qdot = s0dot * (self.qF - self.q0)
         self.q = q
-        # self.q2 = q2
-
-        self.pd = pd
-        # self.pd2 = pd2
-
-        # Return the position and velocity as python lists.
         return (q.flatten().tolist(), qdot.flatten().tolist())

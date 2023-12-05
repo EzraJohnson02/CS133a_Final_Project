@@ -18,7 +18,8 @@ class TrajectoryPlanner:
         return self.v + self.a * t
 
     def calculate_min_time(self):
-        t = fmin(lambda tm: np.linalg.norm(self.position(np.abs(tm) + self.min_time)),
+        R = 0.7
+        t = fmin(lambda tm: np.abs(np.linalg.norm(self.position(np.abs(tm) + self.min_time)) - R),
                  x0=self.min_time + 5.0,
                  maxiter=100
                 )
