@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'testrobot = finalproject.testrobot:main',
+            'ballcatch = finalproject.ballcatch:main',
             'balldemo = finalproject.balldemo:main'
         ],
     },

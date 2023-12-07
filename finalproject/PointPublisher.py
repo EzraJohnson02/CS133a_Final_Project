@@ -80,21 +80,25 @@ class SingleVariable(QWidget):
 
 
 class XYZGUI(QWidget):
-    def __init__(self, p0, callback):
+    def __init__(self, p0, v0, callback):
         super().__init__()
-        self.value    = p0
+        self.value    = p0 + v0
         self.callback = callback
-        self.initUI(p0)
+        self.initUI(p0, v0)
 
-    def initUI(self, p):
+    def initUI(self, p, v):
         # Create the XYZ variables
         vbox = QVBoxLayout()
-        vbox.addWidget(SingleVariable('X', p[0], -1.4, 1.4, self.xHandler))
-        vbox.addWidget(SingleVariable('Y', p[1], -1.4, 1.4, self.yHandler))
-        vbox.addWidget(SingleVariable('Z', p[2],  1.4, 3, self.zHandler))
+        vbox.addWidget(SingleVariable('x', p[0], -1.4, 1.4, self.xHandler))
+        vbox.addWidget(SingleVariable('y', p[1], -1.4, 1.4, self.yHandler))
+        vbox.addWidget(SingleVariable('z', p[2],  1.4, 3, self.zHandler))
+
+        vbox.addWidget(SingleVariable('vx', v[0], -1, 1, self.xHandler))
+        vbox.addWidget(SingleVariable('vy', v[1], -1, 1, self.yHandler))
+        vbox.addWidget(SingleVariable('vz', v[2], -1, 1, self.zHandler))
 
         self.setLayout(vbox)
-        self.setWindowTitle('XYZ Position')
+        self.setWindowTitle('Ball Start Conditions')
         self.show()
 
     def xHandler(self, value):
@@ -107,6 +111,19 @@ class XYZGUI(QWidget):
 
     def zHandler(self, value):
         self.value[2] = value
+        self.callback(self.value)
+
+    def vxHandler(self, value):
+        self.value[3] = value
+        self.callback(self.value)
+
+    def vyHandler(self, value):
+        self.value[4] = value
+        self.callback(self.value)
+
+
+    def vzHandler(self, value):
+        self.value[5] = value
         self.callback(self.value)
 
     def kill(self, signum, frame):
@@ -136,6 +153,7 @@ class GUINode(Node):
 
         # Create the point.
         self.p = Point()
+        self.v = initvalue[3:]
         self.setvalue(initvalue)
 
         # Create the point message.
@@ -186,7 +204,8 @@ class GUINode(Node):
 
         # Then setup the GUI window.  And declare the ctrl-c handler to
         # close that window.
-        gui = XYZGUI(self.getvalue(), self.setvalue)
+        p, v = self.getvalue()
+        gui = XYZGUI(p, v, self.setvalue)
         signal.signal(signal.SIGINT, gui.kill)
 
         # Start the publisher in a separate thread.
@@ -236,9 +255,10 @@ class GUINode(Node):
     # Get/Set the value.
     def getvalue(self):
         # Get the value.
-        return [self.p.x, self.p.y, self.p.z]
+        return [self.p.x, self.p.y, self.p.z], self.v
     def setvalue(self, value):
         # Set the value.
         self.p.x = value[0]
         self.p.y = value[1]
         self.p.z = value[2]
+        self.v = value[3:]

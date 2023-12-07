@@ -52,7 +52,7 @@ from finalproject.TransformHelpers import *
 #
 class ProjectNode(Node):
     # Initialization.
-    def __init__(self, name, p, rate, Trajectory):
+    def __init__(self, name, p, v, rate, Trajectory):
         # Initialize the node, naming it as specified
         super().__init__(name)
         self.delay = 0.
@@ -70,7 +70,7 @@ class ProjectNode(Node):
         self.radius = 0.05
 
         self.p = np.array([p[0], p[1], p[2]]).reshape((3,1))
-        self.v = np.array([-0.2, 0., 0.]).reshape((3,1))
+        self.v = np.array([v[0], v[1], v[2]]).reshape((3,1))
         self.a = np.array([0.0, 0.0, -0.2]).reshape((3,1))
 
         # Create the sphere marker.
@@ -214,15 +214,14 @@ class ProjectNode(Node):
 
         # Check for a bounce - not the change in x velocity is non-physical.
         p_tip = self.trajectory.position()
-        if np.linalg.norm(self.p - p_tip) < 2 * self.radius and self.delay <= 0:
-            self.p = p_tip - 0.1 * self.v
-            self.v *= -1
+        if np.linalg.norm(self.p - p_tip) < 0.2 and self.delay <= 0:
+            self.v *= -1.
             self.delay = 0.8
             self.planned = False
-        elif self.p[2, 0] < self.radius:
-            self.p[2,0] = self.radius
+        elif self.p[2, 0] < self.radius + (-1.4):
+            self.p[2,0] = self.radius - 1.4
             self.p -= 0.1 * self.v
-            self.v *= -1
+            self.v *= -1.
             self.delay = 0.8
             self.planned = False
 

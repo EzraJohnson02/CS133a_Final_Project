@@ -1,15 +1,3 @@
-'''hw6p5.py
-
-   This is the skeleton code for HW6 Problem 5.  Please EDIT.
-
-   This uses the inverse kinematics from Problem 4, but adds a more
-   complex trajectory.
-
-   Node:        /generator
-   Publish:     /joint_states           sensor_msgs/JointState
-
-'''
-
 import rclpy
 from rclpy.node                 import Node
 import numpy as np
@@ -26,16 +14,16 @@ from finalproject.PointPublisher import *
 def main(args=None):
     # Initialize ROS.
     rclpy.init(args=args)
-    node = GUINode('point', [0., 0., 0.], 10)
+    node = GUINode('point', [0., 0., 0., -0.2, 0., 0.], 10)
     # Run until interrupted.
     node.run()
-    p = node.getvalue()
+    p, v = node.getvalue()
     # Shutdown the node and ROS.
     node.destroy_node()
 
     # Initialize the generator node for 100Hz udpates, using the above
     # Trajectory class.
-    generator = ProjectNode('generator', p, 100, Trajectory)
+    generator = ProjectNode('generator', p, v, 100, Trajectory)
 
     # Spin, meaning keep running (taking care of the timer callbacks
     # and message passing), until interrupted or the trajectory ends.
