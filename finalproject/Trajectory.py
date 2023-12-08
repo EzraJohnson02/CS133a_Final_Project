@@ -168,22 +168,21 @@ class Trajectory:
             (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
             pd = self.p0 + (self.pF - self.p0) * s0
             vd = (self.pF - self.p0) * s0dot
-            wd = -pi/2 * ey() - self.theta_paddle * self.e_paddle
+            Rd = Roty(-pi/2 * s0.item()) @ Rote(self.e_paddle, -self.theta_paddle * s0.item())
+            wd = (-pi/2 * ey() - self.theta_paddle * self.e_paddle) * s0dot
             # pd2 = self.p0 + (self.pF2 - self.p0) * s0
             # vd2 = (self.pF2 - self.p0) * s0dot
             # wd2 = -pi/2 * ey() - self.theta_paddle2 * self.e_paddle2
 
             qlast = q
-            pdlast = pd
-            Rdlast = self.Rd
 
             # qlast2 = self.q2
             # pdlast2 = self.pd2
             # Rdlast2 = self.Rd2
 
             (p, R, Jv, Jw) = self.chain.fkin(qlast)
-            vr = vd + self.lam * ep(pdlast, p)
-            wr = wd + self.lam * eR(Rdlast, R)
+            vr = vd + self.lam * ep(pd, p)
+            wr = wd + self.lam * eR(Rd, R)
             J = np.vstack((Jv, Jw))
             xrdot = np.vstack((vr, wr))
 
