@@ -93,9 +93,9 @@ class XYZGUI(QWidget):
         vbox.addWidget(SingleVariable('y', p[1], -1.4, 1.4, self.yHandler))
         vbox.addWidget(SingleVariable('z', p[2],  1.4, 3, self.zHandler))
 
-        vbox.addWidget(SingleVariable('vx', v[0], -1, 1, self.xHandler))
-        vbox.addWidget(SingleVariable('vy', v[1], -1, 1, self.yHandler))
-        vbox.addWidget(SingleVariable('vz', v[2], -1, 1, self.zHandler))
+        vbox.addWidget(SingleVariable('vx', v[0], -1, 1, self.vxHandler))
+        vbox.addWidget(SingleVariable('vy', v[1], -1, 1, self.vyHandler))
+        vbox.addWidget(SingleVariable('vz', v[2], -1, 1, self.vzHandler))
 
         self.setLayout(vbox)
         self.setWindowTitle('Ball Start Conditions')

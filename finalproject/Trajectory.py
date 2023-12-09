@@ -38,13 +38,13 @@ class Trajectory:
         if distance > task_radius:
             print(f"Ball 1 is out of bounds! Distance {distance}")
             self.pF = self.p0
-            self.T = 10
+            self.T = 3.
             e = ez()
             self.e_paddle = e
-            self.theta_paddle = 0
+            self.theta_paddle = np.array([0.])
         else:
             self.pF = np.array(catch_position).reshape((-1,1))
-            self.T = t * 0.9
+            self.T = t.item() * 0.9
             ball_velocity = tp.velocity(t).flatten()
             # Negative to go in other direction
             ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
@@ -54,6 +54,7 @@ class Trajectory:
 
             self.e_paddle = e
             self.theta_paddle = np.arccos(np.dot(ball_velocity_norm, z))
+            print(self.theta_paddle)
 
 
         # tp = TrajectoryPlanner(p_ball2, v_ball2, a_ball2, min_time)
@@ -110,13 +111,13 @@ class Trajectory:
         if distance > task_radius:
             print(f"Ball 1 is out of bounds! Distance {distance}")
             self.pF = self.p0
-            self.T = 10
+            self.T = 3.
             e = ez()
             self.e_paddle = e
-            self.theta_paddle = 0
+            self.theta_paddle = 0.
         else:
             self.pF = np.array(catch_position).reshape((-1,1))
-            self.T = t * 0.9
+            self.T = t.item() * 0.9
             ball_velocity = tp.velocity(t).flatten()
             # Negative to go in other direction
             ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
@@ -168,7 +169,8 @@ class Trajectory:
             (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
             pd = self.p0 + (self.pF - self.p0) * s0
             vd = (self.pF - self.p0) * s0dot
-            Rd = Roty(-pi/2 * s0.item()) @ Rote(self.e_paddle, -self.theta_paddle * s0.item())
+            
+            Rd = Roty(-pi/2 * s0) @ Rote(self.e_paddle, -self.theta_paddle * s0)
             wd = (-pi/2 * ey() - self.theta_paddle * self.e_paddle) * s0dot
             # pd2 = self.p0 + (self.pF2 - self.p0) * s0
             # vd2 = (self.pF2 - self.p0) * s0dot
