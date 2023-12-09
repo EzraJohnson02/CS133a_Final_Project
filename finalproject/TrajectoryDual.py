@@ -38,13 +38,13 @@ class Trajectory1:
         if distance > task_radius:
             print(f"Ball 1 is out of bounds! Distance {distance}")
             self.pF = self.p0
-            self.T = 10
+            self.T = 3;
             e = ez()
             self.e_paddle = e
-            self.theta_paddle = 0
+            self.theta_paddle = 0.
         else:
             self.pF = np.array(catch_position).reshape((-1,1))
-            self.T = t * 0.9
+            self.T = t.item() * 0.9
             ball_velocity = tp.velocity(t).flatten()
             # Negative to go in other direction
             ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
@@ -257,13 +257,13 @@ class Trajectory2:
         if distance > task_radius:
             print(f"Ball 1 is out of bounds! Distance {distance}")
             self.pF = self.p0
-            self.T = 10
+            self.T = 3.
             e = ez()
             self.e_paddle = e
             self.theta_paddle = 0
         else:
             self.pF = np.array(catch_position).reshape((-1,1))
-            self.T = t * 0.9
+            self.T = t.item() * 0.9
             ball_velocity = tp.velocity(t).flatten()
             # Negative to go in other direction
             ball_velocity_norm = -ball_velocity / np.linalg.norm(ball_velocity)
