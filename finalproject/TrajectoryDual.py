@@ -168,12 +168,8 @@ class Trajectory1:
             (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
             pd = self.p0 + (self.pF - self.p0) * s0
             vd = (self.pF - self.p0) * s0dot
-            Rd = Roty(-pi/2 * s0.item()) @ Rote(self.e_paddle, -self.theta_paddle * s0.item())
+            Rd = Roty(-pi/2 * s0) @ Rote(self.e_paddle, -self.theta_paddle * s0)
             wd = (-pi/2 * ey() - self.theta_paddle * self.e_paddle) * s0dot
-            # pd2 = self.p0 + (self.pF2 - self.p0) * s0
-            # vd2 = (self.pF2 - self.p0) * s0dot
-            # wd2 = -pi/2 * ey() - self.theta_paddle2 * self.e_paddle2
-
             qlast = q
 
             # qlast2 = self.q2
@@ -387,29 +383,15 @@ class Trajectory2:
             (s0, s0dot) = goto(t, self.T, 0.0, 1.0)
             pd = self.p0 + (self.pF - self.p0) * s0
             vd = (self.pF - self.p0) * s0dot
-            Rd = Roty(-pi/2 * s0.item()) @ Rote(self.e_paddle, -self.theta_paddle * s0.item())
+            Rd = Roty(-pi/2 * s0) @ Rote(self.e_paddle, -self.theta_paddle * s0)
             wd = (-pi/2 * ey() - self.theta_paddle * self.e_paddle) * s0dot
-            # pd2 = self.p0 + (self.pF2 - self.p0) * s0
-            # vd2 = (self.pF2 - self.p0) * s0dot
-            # wd2 = -pi/2 * ey() - self.theta_paddle2 * self.e_paddle2
-
             qlast = q
-
-            # qlast2 = self.q2
-            # pdlast2 = self.pd2
-            # Rdlast2 = self.Rd2
 
             (p, R, Jv, Jw) = self.chain.fkin(qlast)
             vr = vd + self.lam * ep(pd, p)
             wr = wd + self.lam * eR(Rd, R)
             J = np.vstack((Jv, Jw))
             xrdot = np.vstack((vr, wr))
-
-            # (p2, R2, Jv2, Jw2) = self.chain.fkin(qlast2)
-            # vr2 = vd2 + self.lam * ep(pdlast2, p2)
-            # wr2 = wd2 + self.lam * eR(Rdlast2, R2)
-            # J2 = np.vstack((Jv2, Jw2))
-            # xrdot2 = np.vstack((vr2, wr2))
 
             M, N = J.shape
             gamma = 0.1
